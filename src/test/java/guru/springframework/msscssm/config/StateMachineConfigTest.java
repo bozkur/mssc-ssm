@@ -2,6 +2,7 @@ package guru.springframework.msscssm.config;
 
 import guru.springframework.msscssm.domain.PaymentEvent;
 import guru.springframework.msscssm.domain.PaymentState;
+import guru.springframework.msscssm.services.PaymentServiceImpl;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,6 +10,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
 
@@ -38,7 +41,10 @@ class StateMachineConfigTest {
     @Test
     @DisplayName("Test new -> new when incoming event is pre authorize")
     void shouldCorrectStateTransitionOccursWhenPreAuthorizeEventComes() {
-        stateMachine.sendEvent(PaymentEvent.PRE_AUTHORIZE);
+        Message<PaymentEvent> message = MessageBuilder.withPayload(PaymentEvent.PRE_AUTHORIZE)
+                .setHeader(PaymentServiceImpl.PAYMENT_ID_HEADER, 5L)
+                .build();
+        stateMachine.sendEvent(message);
         assertThat(stateMachine.getState().getId(), Matchers.equalTo(PaymentState.PRE_AUTH));
     }
 
