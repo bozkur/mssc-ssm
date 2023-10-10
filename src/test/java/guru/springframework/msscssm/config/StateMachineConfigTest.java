@@ -3,6 +3,7 @@ package guru.springframework.msscssm.config;
 import guru.springframework.msscssm.domain.PaymentEvent;
 import guru.springframework.msscssm.domain.PaymentState;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,14 +27,19 @@ class StateMachineConfigTest {
     @BeforeEach
     void setUp() {
         stateMachine = stateMachineFactory.getStateMachine();
-        stateMachine.startReactively().block();
+        stateMachine.start();
+    }
+
+    @AfterEach
+    void tearDown() {
+        stateMachine.stop();
     }
 
     @Test
     @DisplayName("Test new -> new when incoming event is pre authorize")
     void shouldCorrectStateTransitionOccursWhenPreAuthorizeEventComes() {
         stateMachine.sendEvent(PaymentEvent.PRE_AUTHORIZE);
-        assertThat(stateMachine.getState().getId(), Matchers.equalTo(PaymentState.NEW));
+        assertThat(stateMachine.getState().getId(), Matchers.equalTo(PaymentState.PRE_AUTH));
     }
 
     @Test
@@ -47,6 +53,20 @@ class StateMachineConfigTest {
     @DisplayName("Test new -> auth_error when event is pre auth declined")
     void shouldCorrectStateTransitionOccursWhenPreAuthDeclinedEventComes() {
         stateMachine.sendEvent(PaymentEvent.PRE_AUTH_DECLINED);
+        assertThat(stateMachine.getState().getId(), Matchers.equalTo(PaymentState.PRE_AUTH_ERROR));
+    }
+
+    @Test
+    void shouldTranslateFromPreAuthToAuth() {
+        stateMachine.sendEvent(PaymentEvent.PRE_AUTH_APPROVED);
+        stateMachine.sendEvent(PaymentEvent.AUTH_APPROVED);
+        assertThat(stateMachine.getState().getId(), Matchers.equalTo(PaymentState.AUTH));
+    }
+
+    @Test
+    void shouldTranslateFromPreAuthToAuthError() {
+        stateMachine.sendEvent(PaymentEvent.PRE_AUTH_APPROVED);
+        stateMachine.sendEvent(PaymentEvent.AUTH_DECLINED);
         assertThat(stateMachine.getState().getId(), Matchers.equalTo(PaymentState.AUTH_ERROR));
     }
 }

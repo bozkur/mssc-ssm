@@ -42,7 +42,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public StateMachine<PaymentState, PaymentEvent> authorizePayment(Long paymentId) {
         StateMachine<PaymentState, PaymentEvent> sm = build(paymentId);
-        sendEvent(paymentId, sm, PaymentEvent.AUTH_APPROVED);
+        sendEvent(paymentId, sm, PaymentEvent.AUTHORIZE);
         return sm;
     }
 
@@ -63,15 +63,16 @@ public class PaymentServiceImpl implements PaymentService {
     private StateMachine<PaymentState, PaymentEvent> build(Long paymentId) {
         Payment payment = paymentRepository.getReferenceById(paymentId);
         StateMachine<PaymentState, PaymentEvent> sm = stateMachineFactory.getStateMachine(Long.toString(payment.getId()));
-        sm.stopReactively().block();
+        sm.stop();
+        //Durum makinesini payment durumuna göre ilklendirmek icin kullanilir.
         sm.getStateMachineAccessor()
                 .doWithAllRegions(
                         sma -> {
                             sma.addStateMachineInterceptor(paymentStateMachineInterceptor);
-                            sma.resetStateMachineReactively(new DefaultStateMachineContext<>(payment.getState(), null, null, null));
+                            sma.resetStateMachine(new DefaultStateMachineContext<>(payment.getState(), null, null, null));
                         }
                 );
-        sm.startReactively().block();
+        sm.start();
         return sm;
     }
 }
